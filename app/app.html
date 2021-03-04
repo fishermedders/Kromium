@@ -60,12 +60,4 @@
         <webview id="view" class="page" src="http://www.google.com/" autosize="on"></webview>
       </div>
       <script src="app.js"></script>
-      <script>
-        var observer = new MutationObserver(function(mutations) {
-            console.log('src changed');
-          });
-          observer.observe(document.getElementById('view'), { 
-            attributes: true, 
-            attributeFilter: ['src'] });
-      </script>
 </html>

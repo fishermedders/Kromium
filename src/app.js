@@ -9,10 +9,12 @@ import "./helpers/external_links.js";
 // Everything below is just to show you how it works. You can delete all of it.
 // ----------------------------------------------------------------------------
 
-import { remote } from "electron";
+import { remote, ipcRenderer } from "electron";
 import jetpack from "fs-jetpack";
 import { greet } from "./hello_world/hello_world";
 import env from "env";
+
+const { getPublicSuffix } = require('tldjs');
 
 const app = remote.app;
 const appDir = jetpack.cwd(app.getAppPath());
@@ -56,7 +58,16 @@ function updateURL (event) {
   if (event.keyCode === 13) {
       omni.blur();
       let val = omni.value;
-      if(val.includes('.kst')) {
+      let https = val.slice(0, 8).toLowerCase();
+        let http = val.slice(0, 7).toLowerCase();
+        if (https === 'https://') {
+            view.loadURL(val);
+        } else if (http === 'http://') {
+            view.loadURL(val);
+        } else {
+          view.loadURL('http://'+ val);
+        }
+      /*if(val.includes('.kst')) {
         fetch('https://krist.ceriat.net/names/' + omni.value.replace('.kst',''))
         .then(res => res.json())
         .then((body) => {
@@ -82,10 +93,13 @@ function updateURL (event) {
         } else {
           view.loadURL('http://'+ val);
         }
-      }
-      
-      
+      }*/
+    
   }
+}
+
+function handleCustomUrls() {
+  
 }
 
 var Bookmark = function (id, url, faviconUrl, title) {
@@ -164,6 +178,38 @@ function handleDevtools () {
 function updateNav (event) {
   omni.value = view.src;
 }
+
+/*var observer = new MutationObserver(function(mutations) {
+  console.log('src changed');
+  document.getElementById('url').value = document.getElementById('view').src;
+});
+observer.observe(document.getElementById('view'), { 
+  attributes: true, 
+  attributeFilter: ['src'] });
+
+document.addEventListener("beforeunload", function (event) {
+  console.log("beforeunload")
+});
+
+document.getElementById('view').addEventListener('will-navigate', function(event) {
+  if(event.url.includes('.kst')) {
+    ipcRenderer.send('cancel-fake-domain-nav', event);
+  }
+});*/
+
+/*view.addEventListener('dom-ready', () => {
+  view.getWebContents().session.webRequest.onBeforeRedirect((details, callback) => {
+    console.log(details)
+    /*if (details.url === urlToBlock) // cancel the request
+      callback({ cancel: true })
+    else // let the request happen
+      callback({})
+  })
+})*/
+
+document.addEventListener('dom-ready', () => {
+  ipcRenderer.send('webcontents-to-main', document.getElementById('view').getWebContents());
+});
 
 refresh.addEventListener('click', reloadView);
 back.addEventListener('click', backView);

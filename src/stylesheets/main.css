@@ -160,7 +160,17 @@ body {
 #navigation #fave i,
 #navigation #list i,
 #navigation #console i {
-	cursor: pointer
+	/*cursor: pointer*/
+}
+
+.common-buttons i:hover,
+#navigation #back i:hover,
+#navigation #forward i:hover,
+#navigation #refresh i:hover,
+#navigation #fave i:hover,
+#navigation #list i:hover,
+#navigation #console i:hover {
+	color: #969696;
 }
 
 #navigation {
@@ -173,6 +183,11 @@ body {
 	border-bottom: 2px solid #000000;
 	box-sizing: border-box;
 	padding: 9px 5px 5px 9px;
+	-webkit-app-region: drag;
+}
+
+#navigation > * {
+	-webkit-app-region: none;
 }
 
 #navigation #omnibox {
@@ -307,5 +322,5 @@ body {
 	right: 0;
 	bottom: 0;
 	width: 100%;
-	height: calc(100vh - 28px)
+	height: calc(100vh - 40px)
 }

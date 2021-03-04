@@ -5,14 +5,51 @@
 
 import path from "path";
 import url from "url";
-import { app, Menu } from "electron";
+import { app, Menu, ipcMain } from "electron";
 import { devMenuTemplate } from "./menu/dev_menu_template";
 import { editMenuTemplate } from "./menu/edit_menu_template";
 import createWindow from "./helpers/window";
 
+//var ElectronProxyAgent = require('electron-proxy-agent');
+
 // Special module holding environment variables which you declared
 // in config/env_xxx.json file.
 import env from "env";
+
+const dns = require("dns2")
+const fetch = require("node-fetch")
+
+const { Packet } = dns;
+
+const server = dns.createServer(async (request, send, rinfo) => {
+    const response = Packet.createResponseFromRequest(request);
+    const [ question ] = request.questions;
+    const { name } = question;
+    if (name.endsWith(".kst")) {
+        const nameWithoutExt = name.replace(/\.kst$/, "")
+        const kstName = await (await fetch(`https://krist.ceriat.net/names/${encodeURIComponent(nameWithoutExt)}`)).json()
+        console.log(kstName)
+        if (kstName.name.a) {
+            response.answers.push({
+                name,
+                type: Packet.TYPE.A,
+                class: Packet.CLASS.IN,
+                ttl: 300,
+                address: kstName.name.a
+            });
+        }
+        send(response)
+    } else {
+        // work out how to send NOAUTH here
+        send(response)
+    }
+});
+
+server.on('request', (request, response, rinfo) => {
+    console.log(request.header.id, request.questions[0]);
+});
+
+server.listen(5333);
 
 let mainWindow;
 
@@ -38,7 +75,8 @@ app.on("ready", () => {
   const mainWindow = createWindow("main", {
     width: 1000,
     height: 600,
-    icon: __dirname + '../resources/icons/krist_hq_square.ico',
+    icon: __dirname + '/assets/icons/icon.ico',
+    frame: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -46,6 +84,7 @@ app.on("ready", () => {
     }
   });
   mainWindow.setMenuBarVisibility(false)
+  mainWindow.setIcon(path.join(__dirname, '/assets/icons/krist_hq_square.png'));
 
   mainWindow.loadURL(
     url.format({
@@ -54,6 +93,20 @@ app.on("ready", () => {
       slashes: true
     })
   );
+  let webContents;
+  ipcMain.on('webcontents-to-main', (event, arg) => {
+    webContents = arg;
+    webContents.addEventListener("will-navigate", function(evt) {
+      evt.preventDefault();
+    })
+  })
+
+  /*mainWindow.webContents.session.setProxy(new ElectronProxyAgent({
+    resolveProxy : function(url, callback) {
+      console.log(url);
+      callback("PROXY GOOGLE.COM:80; DIRECT"); // return a valid pac syntax
+    }
+  }));*/
 
   if (env.name === "development") {
     mainWindow.openDevTools();
@@ -63,3 +116,7 @@ app.on("ready", () => {
 app.on("window-all-closed", () => {
   app.quit();
 });
+
+ipcMain.on('cancel-fake-domain-nav', (event, arg) => {
+  arg.preventDefault()
+})
